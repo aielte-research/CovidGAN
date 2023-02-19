@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Lipizzaner and results
+lippizaner_covidgan_master/src/output
+lippizaner_covidgan_master/src/data/datasets
+lippizaner_covidgan_master/**/venv
+lippizaner_covidgan_master/sandbox/pytorch-tutorial/data/
+lippizaner_covidgan_master/sandbox/pytorch-tutorial/*.pkl
+lippizaner_covidgan_master/sandbox/toy_problem/experiment_results
+CovidGAN-classifier/CovidData
+CovidGAN-classifier/GAN_results
+CovidGAN-classifier/Results
+CovidGAN-classifier/Results.xlsx

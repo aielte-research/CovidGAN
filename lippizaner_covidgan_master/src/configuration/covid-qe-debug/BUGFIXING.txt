@@ -1,0 +1,4 @@
+So there is a problem with the iterator when loading fitness_data_samples in generate_random_fitness_samples
+Because I have a dataset of 11956, with batch_size = 128, 
+the dataloader generates 93 datasets with 128 images and one with 52
+And When I'm generating fitness samples of size 300, I measure the fitness size of the batch, which will be 52 
