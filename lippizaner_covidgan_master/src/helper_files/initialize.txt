@@ -1,0 +1,5 @@
+python main.py train --distributed --client;
+py -3.9 main.py train --distributed --client;
+py -3.9 main.py train --distributed --client;
+py -3.9 main.py train --distributed --client;
+python main.py train --distributed --master -f configuration/covid-qu-debug/covidqu_1.yml;

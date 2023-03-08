@@ -8,8 +8,10 @@ from PIL import Image
 import pickle
 import subprocess
 import time
+import neptune 
 
 ROOT_DIR = 'CovidData/Lung_Segmentation_Data'
+#run = neptune.init_run()
 
 torch.set_num_threads(8)
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
@@ -272,7 +274,7 @@ def get_model(name):
     else:
         print("Not implemented")
 
-def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch_size, shuffle ):
+def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch_size, shuffle, neptune_run ):
     """
         A simple train function 
         Params: 
@@ -285,6 +287,7 @@ def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch
             batch_size (int)
             shuffle (bool) 
     """
+
     train_dl = torch.utils.data.DataLoader(train_dataset, batch_size = batch_size, num_workers=0, shuffle= shuffle)
     test_dl =  torch.utils.data.DataLoader(test_dataset, batch_size = batch_size, num_workers=0, shuffle= shuffle)
 
@@ -300,15 +303,14 @@ def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch
         print(f'Starting epoch {e + 1}/{epochs}')
         print('='*20)
 
-        train_loss = 0.
-        train_accuracy = 0.
         train_iter = iter(train_dl)
         
-        curr_acc = 0.
-        curr_loss = 0.
+        train_accuracy = 0.
+        train_loss = 0.
+
         sample_num = 0 
 
-        modell.train() # set model to training phase
+        modell.train() #set model to training phase
         
         #Training 
         batch_num = 0
@@ -323,25 +325,28 @@ def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            train_loss += loss.item()
+            #train_loss += loss.item()
 
             _, preds = torch.max(outputs, 1)
             
-            curr_acc += sum((preds == labels).cpu().numpy())
-            curr_loss += loss.item()
             sample_num += len(labels)
-            print(sample_num)
+            train_accuracy += sum((preds == labels).cpu().numpy())/len(labels)
+            train_loss += loss.item()/len(labels) #average loss throughout the batch
+            
             
             #At every 20th iteration evaluate the training's state and make an evaluation on a test dataset
             if batch_num%20==0:
                 if batch_num != 0:
-                  curr_loss/= 20 
-                curr_acc/= sample_num
-                print(f'Train step: {batch_num} Training Loss: {curr_loss:.4f}, Accuracy: {curr_acc:.4f}')
-                history['train_loss'].append(curr_loss)
-                history['train_accuracy'].append(curr_acc)
-                curr_loss = 0.
-                curr_acc = 0.
+                  train_loss/= 20 
+                  train_accuracy/= 20
+                print(f'Train step: {batch_num} Training Loss: {train_loss:.4f}, Accuracy: {train_accuracy:.4f}')
+                history['train_loss'].append(train_loss)
+                history['train_accuracy'].append(train_accuracy)
+                neptune_run['train/loss'].append(train_loss)
+                neptune_run['train/accuracy'].append(train_accuracy)
+
+                train_loss = 0.
+                train_accuracy = 0.
                 sample_num = 0
                 
                 val_loss = 0.
@@ -372,17 +377,19 @@ def train(epochs, modell, loss_fn, optimizer, train_dataset, test_dataset, batch
         
                 history['val_loss'].append(val_loss)
                 history['val_accuracy'].append(val_accuracy)
+                neptune_run['val/loss'].append(val_loss)
+                neptune_run['val/accuracy'].append(val_accuracy)
             batch_num += 1
     
     torch.cuda.empty_cache()
     print('Training complete..')
     return modell, history
 
-def save_history(modell, history, split, data_ratio, mode):
+def save_history(modell, history, case_string):
     """
-        A simple function that saves the histories and the clasificator
+        A simple function that saves the histories and the clasificator net
     """
-    FILEBASE = f"Histories/{modell.get_name}_model_{split}_split_{data_ratio}_ratio_{mode}_mode"
+    FILEBASE = f"Histories/{case_string}"
     torch.save(modell.state_dict(), FILEBASE + '.pt')
     with open(FILEBASE + '-history.pkl', 'wb') as file:
         pickle.dump(history, file)
@@ -403,71 +410,196 @@ def Test_with_all_ratios(split, epochs, network_name, mode, geoaugment):
                             'gan'          --> using pretrained GANs for generating missing images
                             None           --> No augmentation, this is for benchmark
     """
-    
+    #TODO Maybe upload the pkl files of the networks
     BATCH_SIZE = 128
     if mode is None:
       #Train on the whole dataset only, if there is no oversampling or gan augmentation
       start = time.time()
+
+      dt_string= time.strftime("%Y-%m-%d_%H-%M-%S")
+      case_string = f"{network_name}_model_{split}_split_{1}_ratio_{mode}_mode"
+      neptune_run = neptune.init_run(custom_run_id=f"{case_string}_{dt_string}")
+      params = {
+          "loss_function" : "CrossEntropyLoss",
+          "optimizer" : "Adam",
+          "adam_learning_rate" : 3e-5,
+          "n_epochs" : epochs
+      }
+      neptune_run["model/parameters"] = params
+
+      test_case_params = {
+          'model' : network_name,
+          'split' : split,
+          'data_ratio' : 1,
+          'mode' : mode
+      }
+      neptune_run["test_case/params"] = test_case_params
       
       network = get_model(network_name).to(device)
-      print(f"Working on {network.get_name}_model_{split}_split_{1}_ratio_{mode}_mode")
-      print("Models are on cuda: ",next(network.parameters()).is_cuda )
+      neptune_run["algorithm"] = network.get_name #? Not sure about this
+      
+      print(f"Working on {case_string}")
+      #print("Models are on cuda: ",next(network.parameters()).is_cuda )
       
       optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
       train_dataset, test_dataset = DatasetMaker(split = split, mode = mode, data_ratio = 1, geoaugment = geoaugment) 
-      network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True)
-      save_history(network, history, split, 1, mode)
+      network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset,\
+                                 test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True, neptune_run = neptune_run)
+
+      save_history(network, history, case_string)
       
       end = time.time()
-      print("Time it took to complete: ", end - start)
+      print("Time it took to complete: ", end - start) 
+      neptune_run.stop()
 
     #0.8
+    dt_string= time.strftime("%Y-%m-%d_%H-%M-%S")
+    case_string = f"{network_name}_model_{split}_split_{0.8}_ratio_{mode}_mode"
+    neptune_run = neptune.init_run(custom_run_id=f"{case_string}_{dt_string}")
+    params = {
+          "loss_function" : "CrossEntropyLoss",
+          "optimizer" : "Adam",
+          "adam_learning_rate" : 3e-5,
+          "n_epochs" : epochs,
+          "batch_size" : BATCH_SIZE
+      }
+    neptune_run["model/parameters"] = params
+
+    test_case_params = {
+          'model' : network_name,
+          'split' : split,
+          'data_ratio' : 0.8,
+          'mode' : mode
+      }
+    neptune_run["test_case/params"] = test_case_params
+
     start = time.time()
     network = get_model(network_name).to(device)
-    print(f"Working on {network.get_name}_model_{split}_split_{0.8}_ratio_{mode}_mode")
+    neptune_run["algorithm"] = network.get_name #? Not sure about this
+    
+    print(f"Working on {case_string}")
+
     optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
     train_dataset, test_dataset = DatasetMaker(split = split, mode = mode, data_ratio = 0.8, geoaugment = geoaugment) 
-    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True)
-    save_history(network, history, split, 0.8, mode)
-    
+    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, \
+                                test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True, neptune_run = neptune_run)
+
+    save_history(network, history, case_string)
     end = time.time()
-    print("Time it took to complete: ", end - start)
+    print("Time it took to complete: ", end - start) 
+    neptune_run.stop()
 
     #0.6
+    dt_string= time.strftime("%Y-%m-%d_%H-%M-%S")
+    case_string = f"{network_name}_model_{split}_split_{0.6}_ratio_{mode}_mode"
+    neptune_run = neptune.init_run(custom_run_id=f"{case_string}_{dt_string}")
+    params = {
+          "loss_function" : "CrossEntropyLoss",
+          "optimizer" : "Adam",
+          "adam_learning_rate" : 3e-5,
+          "n_epochs" : epochs,
+          "batch_size" : BATCH_SIZE
+      }
+    neptune_run["model/parameters"] = params
+
+    test_case_params = {
+          'model' : network_name,
+          'split' : split,
+          'data_ratio' : 0.6,
+          'mode' : mode
+      }
+    neptune_run["test_case/params"] = test_case_params
+
     start = time.time()
     network = get_model(network_name).to(device)
-    print(f"Working on {network.get_name}_model_{split}_split_{0.6}_ratio_{mode}_mode")
+    neptune_run["algorithm"] = network.get_name #? Not sure about this
+
+    print(f"Working on {case_string}")
+
     optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
     train_dataset, test_dataset = DatasetMaker(split = split, mode = mode, data_ratio = 0.6, geoaugment = geoaugment) 
-    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True)
-    save_history(network, history, split, 0.6, mode)
-    
+    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset,\
+                                test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True, neptune_run = neptune_run)
+
+    save_history(network, history, case_string)
+      
     end = time.time()
-    print("Time it took to complete: ", end - start)
+    print("Time it took to complete: ", end - start) 
+    neptune_run.stop()
 
     #0.4
+    dt_string= time.strftime("%Y-%m-%d_%H-%M-%S")
+    case_string = f"{network_name}_model_{split}_split_{0.4}_ratio_{mode}_mode"
+    neptune_run = neptune.init_run(custom_run_id=f"{case_string}_{dt_string}")
+    params = {
+          "loss_function" : "CrossEntropyLoss",
+          "optimizer" : "Adam",
+          "adam_learning_rate" : 3e-5,
+          "n_epochs" : epochs,
+          "batch_size" : BATCH_SIZE
+      }
+    neptune_run["model/parameters"] = params
+
+    test_case_params = {
+          'model' : network_name,
+          'split' : split,
+          'data_ratio' : 0.4,
+          'mode' : mode
+      }
+    neptune_run["test_case/params"] = test_case_params
+
     start = time.time()
     network = get_model(network_name).to(device)
-    print(f"Working on {network.get_name}_model_{split}_split_{0.4}_ratio_{mode}_mode")
+    neptune_run["algorithm"] = network.get_name #? Not sure about this
+
+    print(f"Working on {case_string}")
     optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
     train_dataset, test_dataset = DatasetMaker(split = split, mode = mode, data_ratio = 0.4, geoaugment = geoaugment) 
-    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True)
-    save_history(network, history, split, 0.4, mode)
-    
+    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, \
+                                test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True, neptune_run = neptune_run)
+
+    save_history(network, history, case_string)
+      
     end = time.time()
-    print("Time it took to complete: ", end - start)
+    print("Time it took to complete: ", end - start) 
+    neptune_run.stop()
 
     #0.2
+    dt_string= time.strftime("%Y-%m-%d_%H-%M-%S")
+    case_string = f"{network_name}_model_{split}_split_{0.2}_ratio_{mode}_mode"
+    neptune_run = neptune.init_run(custom_run_id=f"{case_string}_{dt_string}")
+    params = {
+          "loss_function" : "CrossEntropyLoss",
+          "optimizer" : "Adam",
+          "adam_learning_rate" : 3e-5,
+          "n_epochs" : epochs,
+          "batch_size" : BATCH_SIZE
+      }
+    neptune_run["model/parameters"] = params
+
+    test_case_params = {
+          'model' : network_name,
+          'split' : split,
+          'data_ratio' : 0.2,
+          'mode' : mode
+      }
+    neptune_run["test_case/params"] = test_case_params
+
     start = time.time()
-    print(f"Working on {network.get_name}_model_{split}_split_{0.2}_ratio_{mode}_mode")
     network = get_model(network_name).to(device)
+    neptune_run["algorithm"] = network.get_name #? Not sure about this
+
+    print(f"Working on {case_string}")
     optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
     train_dataset, test_dataset = DatasetMaker(split = split, mode = mode, data_ratio = 0.2, geoaugment = geoaugment) 
-    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True)
-    save_history(network, history, split, 0.2, mode)
-    
+    network, history = train(epochs = epochs, modell=network, loss_fn=LOSS_FN, optimizer = optimizer, train_dataset = train_dataset, \
+                                test_dataset = test_dataset, batch_size = BATCH_SIZE,  shuffle = True, neptune_run = neptune_run)
+    save_history(network, history, case_string)
+      
     end = time.time()
-    print("Time it took to complete: ", end - start)
+    print("Time it took to complete: ", end - start) 
+    neptune_run.stop()
+
     
 
 if __name__=='__main__':

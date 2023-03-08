@@ -80,12 +80,12 @@ class NeuralNetworkTrainer(ABC):
                 gen = self.population_gen.individuals[0].genome.net
                 gen.eval()
                 
-                print("batch size:", batch_size)
-                print("z shape: ", z.shape)
+                #print("batch size:", batch_size)
+                #print("z shape: ", z.shape)
                 
                 generated_output = gen(z)
                 
-                print("Generated output: ", generated_output.shape)
+                #print("Generated output: ", generated_output.shape)
                 
                 gen.train()
 
@@ -98,7 +98,6 @@ class NeuralNetworkTrainer(ABC):
 
             # Save real images once
             if iteration == 0 and path_real:
-                print("(nn_trainer line 101: Shape of input_var: )", input_var.size())
                 self.dataloader.save_images(input_var, shape, path_real)
 
             z = noise(batch_size, self.network_factory.gen_input_size)

@@ -87,9 +87,11 @@ class FIDCalculator(ScoreCalculator):
             model = InceptionV3([block_idx])
             compute_label_freqs = False
 
-        if self.cuda:
+        if self.cuda and torch.cuda.is_available():
             model.cuda()
-        
+        else:
+            model.cpu()
+                    
         m1, s1, freq1 = self._compute_statistics_of_path(self.imgs_original, model, compute_label_freqs)
         m2, s2, freq2 = self._compute_statistics_of_path(imgs, model, compute_label_freqs)
 
@@ -135,7 +137,7 @@ class FIDCalculator(ScoreCalculator):
 
             batch = torch.stack(images[start:end])
             with torch.no_grad():
-                if self.cuda:
+                if self.cuda and torch.cuda.is_available():
                     batch = batch.cuda()
                 else:
                     # .cpu() is required to convert to torch.FloatTensor because image

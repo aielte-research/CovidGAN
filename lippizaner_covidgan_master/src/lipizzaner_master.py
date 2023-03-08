@@ -20,6 +20,7 @@ from helpers.network_helpers import get_network_devices
 from helpers.reproducible_helpers import set_random_seed
 from training.mixture.mixed_generator_dataset import MixedGeneratorDataset
 from training.mixture.score_factory import ScoreCalculatorFactory
+import neptune
 
 GENERATOR_PREFIX = 'generator-'
 DISCRIMINATOR_PREFIX = 'discriminator-'
@@ -27,6 +28,7 @@ DISCRIMINATOR_PREFIX = 'discriminator-'
 
 class LipizzanerMaster:
     _logger = logging.getLogger(__name__)
+    print("Logger.handlers in lipizzaner_master: ", _logger.handlers)
 
     def __init__(self):
         self.cc = ConfigurationContainer.instance()
@@ -67,6 +69,8 @@ class LipizzanerMaster:
         set_random_seed(self.cc.settings['general']['seed'],
                         self.cc.settings['trainer']['params']['score']['cuda'])
         self._logger.info("Seed used in master: {}".format(self.cc.settings['general']['seed']))
+        #print("Name of the logger in lippi_master: ", self._logger.name)
+        #print("Handlers of the logger in lippi_master: ", self._logger.handlers)
 
         self.heartbeat_event = Event()
         self.heartbeat_thread = Heartbeat(self.heartbeat_event,
@@ -249,10 +253,11 @@ class LipizzanerMaster:
                                                                best_node[0]['port'], best_node[1]))
             #print("Did the logging, now log into neptune_run \n Best node:",best_node[0]['address'] )
             neptune_run['best_generator'] = f"{best_node[0]['address']}:{best_node[0]['port']}"
-        log_filename = self._logger.handlers #TODO find the logfile somehow and log it to neptune
-        base_file_of_logger = self._logger.handlers[0].baseFilename 
-        print(log_filename)
-        print(base_file_of_logger)
+
+        root_logger = logging.getLogger('root')
+        base_file_of_logger = root_logger.handlers[0].baseFilename 
+        print("basefile in lippi_master gather_ressults(): ", base_file_of_logger)
+        neptune_run['master_log_file'].upload(base_file_of_logger)
         neptune_run.stop()
 
     def get_and_create_output_dir(self, node):

@@ -110,11 +110,13 @@ class Neighbourhood:
 
     def _load_topology_details(self):
         client_nodes = self._all_nodes_on_grid()
+        #print("Client nodes: ", client_nodes, len(client_nodes))
 
         if len(client_nodes) != 1 and not is_square(len(client_nodes)):
             raise Exception('Provide either one client node, or a square number of cells (to create a square grid).')
 
         local_port = ClientEnvironment.port
+        #print("Local port", local_port)
         matching_nodes = [node for node in client_nodes if
                           is_local_host(node['address']) and int(node['port']) == local_port]
 

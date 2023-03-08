@@ -1,6 +1,6 @@
 trainer:
   name: lipizzaner_gan
-  n_iterations: 2 #00
+  n_iterations: 1 #00
   calculate_net_weights_dist: True
   # independent_probability, exact_proportion
   mixture_generator_samples_mode: exact_proportion
@@ -32,7 +32,7 @@ dataloader:
   subset_file: Test_orig/orig_split_1_gan.pkl
   augment: False
 network:
-  name: convolutional_grayscale128x128
+  name: four_layer_perceptron #convolutional_grayscale128x128
   loss: bceloss
   history: True
 master:

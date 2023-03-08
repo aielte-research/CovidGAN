@@ -130,6 +130,7 @@ dmypy.json
 
 # Lipizzaner and results
 lippizaner_covidgan_master/src/output
+lippizaner_covidgan_master/src/.neptune
 lippizaner_covidgan_master/src/data/datasets
 lippizaner_covidgan_master/**/venv
 lippizaner_covidgan_master/sandbox/pytorch-tutorial/data/

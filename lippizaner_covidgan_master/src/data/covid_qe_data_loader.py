@@ -44,7 +44,7 @@ class CovidQuPositiveDataSet(ImageFolder):
       Dataset is COVID_Qu_Ex dataset from Kaggle
     """
     
-    _logger = logging.getLogger(__name__)
+    #_logger = logging.getLogger(__name__)
     base_folder = 'COVID_QU/all_covid'
     
     """def __init__(self, root, transform=None, target_transform=None, **kwargs):
@@ -82,7 +82,7 @@ class CovidQuPositiveDataSet(ImageFolder):
           with open(path, 'rb') as file:
             data = pickle.load(file)
             images = [ (os.path.join(self.image_dirs['covid'], x[0]),x[1]) for x in data]
-            print("Succesfully extracted covid images: ", len(images))
+            #print("Succesfully extracted covid images: ", len(images))
         else:
               images = get_images('covid') #If there was no subset file, use all images
             

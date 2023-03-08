@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from collections import defaultdict
 import pickle
+import logging
 import neptune
 
 from distribution.concurrent_populations import ConcurrentPopulations
@@ -123,6 +124,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         self.gen_history = defaultdict(float)
         self.disc_history = defaultdict(float)
         self.fid_history = defaultdict(float)
+        #print("logger.handlers in lipizzaner_gan_trainer: ", self._logger.handlers)
 
 
     def train(self, n_iterations, stop_event=None):
@@ -374,7 +376,11 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 self.db_logger.log_results(iteration+1, self.neighbourhood, self.concurrent_populations,
                                            self.score, stop_time - start_time,
                                            path_real_images, path_fake_images)
-
+        
+        root_logger = logging.getLogger('root')
+        basefile = root_logger.handlers[0].baseFilename
+        print("basefile of root_logger in lipizzaner_hgan: ", basefile)
+        run[f'{self.id}/train/epoch/client_log_file'].upload(basefile)
         run.stop()
         torch.cuda.empty_cache()
         return self.result()
@@ -446,6 +452,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             'Mixture weight mutation - Score before mixture weight optimzation: {}\tScore after mixture weight optimzation: {}.'.format(
                                                                                                         init_score,
                                                                                                         self.score))
+
 
     def step(self, original, attacker, defender, input_data, i, loaded, data_iterator, training_epoch=None):
         self.mutate_hyperparams(attacker)

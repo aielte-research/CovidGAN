@@ -49,7 +49,6 @@ class DataLoader(ABC):
                                train=True,
                                transform=self.transform(),
                                download=True)
-        print("Length of dataset: ", len(dataset))
         if self.sampling_ratio >= 1:
             self.sampler = None
         else:

@@ -1,5 +1,0 @@
-py main.py train --distributed --client;
-py main.py train --distributed --client;
-py main.py train --distributed --client;
-py main.py train --distributed --client;
-py main.py train --distributed --master -f configuration/quickstart/mnist.yml;
