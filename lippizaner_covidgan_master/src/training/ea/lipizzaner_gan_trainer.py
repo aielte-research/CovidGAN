@@ -1,11 +1,13 @@
 import random
 from time import time
 from collections import OrderedDict
+import os
 
 import numpy as np
 import torch
 from collections import defaultdict
 import pickle
+import neptune
 
 from distribution.concurrent_populations import ConcurrentPopulations
 from distribution.neighbourhood import Neighbourhood
@@ -47,6 +49,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         self.mixture_sigma = self.settings.get('mixture_sigma', mixture_sigma)
 
         self.neighbourhood = Neighbourhood.instance()
+        self.id = self.neighbourhood.local_node['id']
+        
+        print("NEPTUNE_CUSTOM_RUN_ID = ", os.environ['NEPTUNE_CUSTOM_RUN_ID'])
 
         for i, individual in enumerate(self.population_gen.individuals):
             individual.learning_rate = self._default_adam_learning_rate
@@ -60,8 +65,8 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         self.concurrent_populations.discriminator = self.population_dis
         self.concurrent_populations.unlock()
 
-        experiment_id = self.cc.settings['general']['logging'].get('experiment_id', None)
-        self.db_logger = DbLogger(current_experiment=experiment_id)
+        self.experiment_id = self.cc.settings['general']['logging'].get('experiment_id', None)
+        self.db_logger = DbLogger(current_experiment=self.experiment_id)
         
         if 'fitness' in self.settings:
             self.fitness_sample_size = self.settings['fitness'].get('fitness_sample_size', fitness_sample_size)
@@ -121,6 +126,10 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
 
     def train(self, n_iterations, stop_event=None):
+        run = neptune.init_run()
+        run['algorithm'] = "LipizzanerGan"
+        run["model/parameters"] = self.cc.settings
+
         loaded = self.dataloader.load()
         selection_applied_apply_replacement = False
         for iteration in range(n_iterations):
@@ -250,16 +259,20 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                     genloss.append(individual.history[individual.updates_recieved-1])
                   elif individual.genome.name in ("Discriminator", "DiscriminatorSequential"):
                     discloss.append(individual.history[individual.updates_recieved-1])
-                self.neighbourhood.gen_history[iteration] = np.mean(genloss)
-                self.neighbourhood.disc_history[iteration] = np.mean(discloss)
+                curr_gen_loss = np.mean(genloss)
+                curr_disc_loss = np.mean(discloss)
+                self.neighbourhood.gen_history[iteration] = curr_gen_loss
+                self.neighbourhood.disc_history[iteration] = curr_disc_loss
+                run[f'{self.id}/train/epoch/gen_loss'].append(curr_gen_loss)
+                run[f'{self.id}/train/epoch/disc_loss'].append(curr_disc_loss)
                   
-            if iteration%5==0:
-                if self.log_history:
-                  print("="*20)
-                  print("Last losses: ")
-                  for individual,_ in self.batch_histories.items():
-                    print('{} loss: {}'.format(individual.genome.name, individual.history[individual.updates_recieved-1]))
-                  print("="*20)
+           # if iteration%5==0:
+           #     if self.log_history:
+           #       print("="*20)
+           #       print("Last losses: ")
+           #       for individual,_ in self.batch_histories.items():
+           #         print('{} loss: {}'.format(individual.genome.name, individual.history[individual.updates_recieved-1]))
+           #       print("="*20)
             # Perform selection first before mutation of mixture_weights
             # Replace the worst with the best new
                     
@@ -321,6 +334,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 self.mutate_mixture_weights_with_score(input_data)  # self.score is updated here
                 if self.log_history:
                      self.neighbourhood.fid_history[iteration] = self.score
+                     run[f'{self.id}/train/epoch/fid_score'].append(self.score)
 
             stop_time = time()
             
@@ -361,6 +375,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                                            self.score, stop_time - start_time,
                                            path_real_images, path_fake_images)
 
+        run.stop()
         torch.cuda.empty_cache()
         return self.result()
 
@@ -471,16 +486,19 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             result = attacker.compute_loss_against(defender, input_var, training_epoch)
             loss = result[0]
             
-            #Thought process, attacker.compute_loss_against is the attacker's loss, so 
-            # wether it is a Generator or Discriminator, the attacker gets all the loss 
-            # but when the attacker is a Discriminator, there is a loss backpropagation for 
-            # the Generator too, and if we want to keep notes of the losses, we have to 
-            # note down this too
+            # Thought process: attacker.compute_loss_against is the attacker's loss. 
+            # Attacker can be a Generator or Discriminator. 
+            # If the attacker is the Generator, there is only one element to the loss:
+            #       The Generator against the Discriminator
+            # If the attacker is a Discriminator there are two parts to the loss:
+            #       1. The Discriminator against the real pictures
+            #       2. The Discriminator against the Generator
+            # So log the loss, and if the attacker is Discriminator, there is another element to the loss
             if self.log_history:
                 self.batch_histories[individual_attacker].append(loss)
                 if defender.name in ('Generator', 'GeneratorSequential'):
-                    gen_losses = result[1][1]
-                    self.batch_histories[individual_defender].append(gen_losses)
+                    disc_against_gen_losses = result[1][1]
+                    self.batch_histories[individual_defender].append(disc_against_gen_losses)
                     
             attacker.net.zero_grad()
             defender.net.zero_grad()

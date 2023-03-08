@@ -17,7 +17,7 @@ class LogHelper:
         file_handler = logging.FileHandler(
             datetime.now().strftime('{}/lipizzaner_%Y-%m-%d_%H-%M.log'.format(output_dir)))
         console_handler = logging.StreamHandler()
-
+        
         # Formatter
         formatter = logging.Formatter('%(asctime)s %(levelname)s - %(name)s - %(message)s')
         file_handler.setFormatter(formatter)
@@ -34,3 +34,4 @@ class LogHelper:
     def log_only_flask_warnings():
         log = logging.getLogger('werkzeug')
         log.setLevel(logging.WARNING)
+
