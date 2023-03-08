@@ -158,6 +158,7 @@ class LipizzanerMaster:
             exit(return_code)
 
     def _gather_results(self):
+        neptune_run = neptune.init_run()
         self._logger.info('Collecting results from clients...')
 
         # Initialize node client
@@ -246,6 +247,13 @@ class LipizzanerMaster:
             best_node = sorted(scores, key=lambda x: x[1], reverse=ScoreCalculatorFactory.create().is_reversed)[-1]
             self._logger.info('Best result: {}:{} = {}'.format(best_node[0]['address'],
                                                                best_node[0]['port'], best_node[1]))
+            #print("Did the logging, now log into neptune_run \n Best node:",best_node[0]['address'] )
+            neptune_run['best_generator'] = f"{best_node[0]['address']}:{best_node[0]['port']}"
+        log_filename = self._logger.handlers #TODO find the logfile somehow and log it to neptune
+        base_file_of_logger = self._logger.handlers[0].baseFilename 
+        print(log_filename)
+        print(base_file_of_logger)
+        neptune_run.stop()
 
     def get_and_create_output_dir(self, node):
         directory = os.path.join(self.cc.output_dir, 'master', self.cc.settings['general']['distribution']['start_time'],
