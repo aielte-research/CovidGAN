@@ -11,6 +11,9 @@ import torch.utils.data
 from torch.autograd import Variable
 import pickle
 
+import hashlib
+from datetime import datetime
+
 from distribution.node_client import NodeClient
 from helpers.configuration_container import ConfigurationContainer
 from helpers.db_logger import DbLogger
@@ -28,13 +31,19 @@ DISCRIMINATOR_PREFIX = 'discriminator-'
 
 class LipizzanerMaster:
     _logger = logging.getLogger(__name__)
-    print("Logger.handlers in lipizzaner_master: ", _logger.handlers)
 
     def __init__(self):
         self.cc = ConfigurationContainer.instance()
         self.heartbeat_event = None
         self.heartbeat_thread = None
         self.experiment_id = None
+        
+        now = datetime.now()
+        hash_id = hashlib.md5(now.strftime("%Y-%m-%d_%H_%M_%S").encode("utf-8")).hexdigest()
+        self.neptune_id = hash_id
+        with open("neptune_id.txt", "w") as f:
+          f.write(hash_id)
+          
 
     def run(self):
         if os.environ.get('DOCKER', False) == 'True':
@@ -162,7 +171,7 @@ class LipizzanerMaster:
             exit(return_code)
 
     def _gather_results(self):
-        neptune_run = neptune.init_run()
+        neptune_run = neptune.init_run(custom_run_id=self.neptune_id)
         self._logger.info('Collecting results from clients...')
 
         # Initialize node client
@@ -179,7 +188,7 @@ class LipizzanerMaster:
             node_name = '{}:{}'.format(node['address'], node['port'])
             try:
                 output_dir = self.get_and_create_output_dir(node)
-
+                neptune_run['{}:{}/output_dir'.format(node['address'], node['port'])] = output_dir
                 for generator in generator_pop.individuals:
                     source = generator.source.replace(':', '-')
                     filename = '{}{}.pkl'.format(GENERATOR_PREFIX, source)
@@ -256,7 +265,6 @@ class LipizzanerMaster:
 
         root_logger = logging.getLogger('root')
         base_file_of_logger = root_logger.handlers[0].baseFilename 
-        print("basefile in lippi_master gather_ressults(): ", base_file_of_logger)
         neptune_run['master_log_file'].upload(base_file_of_logger)
         neptune_run.stop()
 

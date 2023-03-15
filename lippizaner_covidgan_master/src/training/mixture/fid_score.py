@@ -76,7 +76,7 @@ class FIDCalculator(ScoreCalculator):
             model.load_state_dict(torch.load(file_path + '/../../ensemble_optimization/output/networks/mnist_cnn.pkl'))
             compute_label_freqs = True
         elif self.cc.settings['dataloader']['dataset_name'] == 'covidqu':
-            model = torchvision.models.resnet18(pretrained=True)
+            model = torchvision.models.resnet18(weights="IMAGENET1K_V1")
             model.conv1= torch.nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             model.fc = torch.nn.Linear(in_features=512, out_features=3)
             file_path = str(pathlib.Path(__file__).parent.absolute())
