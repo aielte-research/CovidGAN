@@ -134,6 +134,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
         loaded = self.dataloader.load()
         selection_applied_apply_replacement = False
+        print(self.cc.output_dir)
+        run[f'{self.id}/output_dir'] = self.cc.output_dir
+
         for iteration in range(n_iterations):
             self._logger.debug('Iteration {} started'.format(iteration + 1))
             self.cc.settings['network']['iteration'] = iteration
@@ -379,7 +382,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         
         root_logger = logging.getLogger('root')
         basefile = root_logger.handlers[0].baseFilename
-        print("basefile of root_logger in lipizzaner_hgan: ", basefile)
+        #print("basefile of root_logger in lipizzaner_hgan: ", basefile)
         run[f'{self.id}/train/epoch/client_log_file'].upload(basefile)
         run.stop()
         torch.cuda.empty_cache()

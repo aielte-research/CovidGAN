@@ -157,6 +157,7 @@ class ClientAPI:
         ClientAPI._set_output_dir(cc)
 
         if 'logging' in cc.settings['general'] and cc.settings['general']['logging']['enabled']:
+            print("Setting up ClientApi logging")
             LogHelper.setup(cc.settings['general']['logging']['log_level'], cc.output_dir)
 
         ClientAPI._logger.info('Distributed training recognized, set log directory to {}'.format(cc.output_dir))
