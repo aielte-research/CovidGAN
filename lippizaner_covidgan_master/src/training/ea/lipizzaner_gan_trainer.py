@@ -131,11 +131,11 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         run = neptune.init_run()
         run['algorithm'] = "LipizzanerGan"
         run["model/parameters"] = self.cc.settings
+        run[f'{self.id}/output_dir'] = self.cc.output_dir
 
         loaded = self.dataloader.load()
         selection_applied_apply_replacement = False
-        print(self.cc.output_dir)
-        run[f'{self.id}/output_dir'] = self.cc.output_dir
+        
 
         for iteration in range(n_iterations):
             self._logger.debug('Iteration {} started'.format(iteration + 1))
