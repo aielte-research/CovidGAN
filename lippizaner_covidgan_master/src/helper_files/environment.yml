@@ -1,68 +1,70 @@
 # TODO: Cleanup dependencies and pip packages that are not used
-name: lipizzaner
+name: neptunelippi
 channels:
   - pytorch
+  - conda-forge
   - defaults
 dependencies:
-  - ca-certificates=2018.03.07=0
-  - certifi=2018.1.18=py36_0
+  - ca-certificates
+  - certifi
   - cffi
-  - cudatoolkit
-  - cudnn
+  #- cudatoolkit
+  #- cudnn
   - cycler
-  #- dbus
+  - dbus
   - expat
-  #- fontconfig
+  - fontconfig
   - freetype
   - glib
   - gst-plugins-base
   - gstreamer
   - icu
-  - intel-openmp=2018.0.0=8
+  - intel-openmp
   - jpeg
   - kiwisolver
-  #- libedit
+  - libedit
   - libffi
-  #- libgcc-ng
-  #- libgfortran-ng
+  - libgcc-ng
+  - libgfortran-ng
   - libpng
-  #- libstdcxx-ng
+  - libstdcxx-ng
   - libtiff
-  #- libxcb
+  - libxcb
   - libxml2
   - matplotlib
-  - mkl=2018.0.2=1
+  - mkl
   - mkl_fft
   - mkl_random
-  #- ncurses
+  - ncurses
   - numpy
-  - olefile=0.45.1=py36_0
+  - olefile
   - openssl
   - pcre
   - pillow
-  - pip=9.0.3=py36_0
+  - pip
   - pycparser
   - pyparsing
   - pyqt
   - python
-  - python-dateutil=2.7.2=py36_0
-  - pytz=2018.3=py36_0
+  - python-dateutil
+  - pytz
   - pyyaml
   - qt
-  #- readline
+  - readline
   - scipy
-  - setuptools=39.0.1=py36_0
+  - setuptools
   - sip
   - six
   - sqlite
   - tk
-  - tornado=5.0.1=py36_1
-  - wheel=0.31.0=py36_0
+  - tornado
+  - wheel
   - xz
   - yaml
   - zlib
-  - pytorch
-  - torchvision
+  #- pytorch
+  #- pytorch-cuda=11.7
+  #- torchvision
   - pip:
     - absl-py
     - appdirs
@@ -70,6 +72,7 @@ dependencies:
     - bleach
     - chardet
     - click
+    - deap
     - flask
     - gast
     - grpcio
@@ -78,11 +81,12 @@ dependencies:
     - imageio
     - itsdangerous
     - jinja2
-    - lanscan
+    #- lanscan==0.9.0
     - lmdb
     - losswise
     - markdown
     - markupsafe
+    - neptune
     - netaddr
     - netifaces
     - pandas
@@ -92,11 +96,13 @@ dependencies:
     - requests
     - scapy-python3
     - tensorboard
-    - tensorflow-gpu
+    #- tensorflow
     - termcolor
     - texttable
     - torch
+    #- torchaudio
+    #- torchvision
     - urllib3
     - werkzeug
     - zignor
-prefix: ~/miniconda/envs/lipizzaner
+prefix: ~/miniconda/envs/neptunelippi

@@ -6,6 +6,7 @@ from helpers.configuration_container import ConfigurationContainer
 from torchvision.datasets import ImageFolder
 
 from torchvision.transforms import ToTensor, Compose, Resize, Grayscale, RandomHorizontalFlip, RandomAffine, Normalize
+from torchvision.transforms.functional import InterpolationMode
 from torch.utils.data import Dataset
 from data.data_loader import DataLoader
 from torchvision.utils import save_image, make_grid
@@ -91,7 +92,7 @@ class CovidQuPositiveDataSet(ImageFolder):
         #           ToTensor(),
         #            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
         #            Grayscale(num_output_channels=1)]
-        transform = [Grayscale(num_output_channels=1), Resize(size=[HEIGHT, WIDTH], interpolation=Image.NEAREST), ToTensor()]
+        transform = [Grayscale(num_output_channels=1), Resize(size=[HEIGHT, WIDTH], interpolation=InterpolationMode.NEAREST), ToTensor()]
         if settings.get('augment', False) == True:
             geo = [RandomAffine(3) ]# RandomHorizontalFlip()]
             for i in geo:

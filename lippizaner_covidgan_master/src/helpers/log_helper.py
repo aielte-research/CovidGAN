@@ -28,9 +28,6 @@ class LogHelper:
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
 
-        print("name of logger in log_helper: ", logger.name)
-        print("Handler of logger: ", logger.handlers)
-
         sys.excepthook = lambda *ex: logger.critical('Unhandled exception', exc_info=ex)
 
     @staticmethod

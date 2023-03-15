@@ -51,8 +51,6 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
         self.neighbourhood = Neighbourhood.instance()
         self.id = self.neighbourhood.local_node['id']
-        
-        print("NEPTUNE_CUSTOM_RUN_ID = ", os.environ['NEPTUNE_CUSTOM_RUN_ID'])
 
         for i, individual in enumerate(self.population_gen.individuals):
             individual.learning_rate = self._default_adam_learning_rate
@@ -128,7 +126,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
 
 
     def train(self, n_iterations, stop_event=None):
-        run = neptune.init_run()
+        with open("neptune_id.txt", "r") as f:
+          self.neptune_id = f.read()
+        run = neptune.init_run(custom_run_id=self.neptune_id)
         run['algorithm'] = "LipizzanerGan"
         run["model/parameters"] = self.cc.settings
         run[f'{self.id}/output_dir'] = self.cc.output_dir
@@ -140,6 +140,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         for iteration in range(n_iterations):
             self._logger.debug('Iteration {} started'.format(iteration + 1))
             self.cc.settings['network']['iteration'] = iteration
+            run[f'{self.id}/train/iteration'] = iteration
             start_time = time()
 
             if self.evaluate_subpopulations_every == 1 or (iteration % self.evaluate_subpopulations_every == 0):
@@ -382,7 +383,6 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         
         root_logger = logging.getLogger('root')
         basefile = root_logger.handlers[0].baseFilename
-        #print("basefile of root_logger in lipizzaner_hgan: ", basefile)
         run[f'{self.id}/train/epoch/client_log_file'].upload(basefile)
         run.stop()
         torch.cuda.empty_cache()
