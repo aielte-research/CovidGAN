@@ -8,7 +8,11 @@ import torch
 from collections import defaultdict
 import pickle
 import logging
+
 import neptune
+import neptune.integrations.sklearn as npt_utils
+from neptune.types import File
+from sklearn.metrics  import ConfusionMatrixDisplay
 
 from distribution.concurrent_populations import ConcurrentPopulations
 from distribution.neighbourhood import Neighbourhood
@@ -206,6 +210,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             data_iterator = iter(loaded)
             self.batch_histories = {}  #this resets every iteration/epoch 
             self.batch_histories = defaultdict(list) 
+            self.conf_matrix = []
             #print("\nBefore learning new pop")
             #for individual in new_populations[TYPE_GENERATOR].individuals:
             #    print("Individual name: ", individual.name)
@@ -267,10 +272,17 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                     discloss.append(individual.history[individual.updates_recieved-1])
                 curr_gen_loss = np.mean(genloss)
                 curr_disc_loss = np.mean(discloss)
+                
                 self.neighbourhood.gen_history[iteration] = curr_gen_loss
                 self.neighbourhood.disc_history[iteration] = curr_disc_loss
                 run[f'{self.id}/train/epoch/gen_loss'].append(curr_gen_loss)
                 run[f'{self.id}/train/epoch/disc_loss'].append(curr_disc_loss)
+                if iteration%50==0:
+                    curr_conf_matrix = np.sum(self.conf_matrix,0)
+                    curr_conf_matrix = curr_conf_matrix / np.sum(curr_conf_matrix)
+                    print("Current conf matrix: ",curr_conf_matrix)
+                    im = ConfusionMatrixDisplay(curr_conf_matrix, display_labels=["fake", "real"]).plot()
+                    run[f'{self.id}/train/epoch/conf_matrix'].append(im.figure_, description=f"Confusion matrix in the iteration: {iteration}") #File.as_image(curr_conf_matrix))
                   
            # if iteration%5==0:
            #     if self.log_history:
@@ -509,6 +521,8 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 if defender.name in ('Generator', 'GeneratorSequential'):
                     disc_against_gen_losses = result[1][1]
                     self.batch_histories[individual_defender].append(disc_against_gen_losses)
+                    conf_matrix = result[2]
+                    self.conf_matrix.append(conf_matrix)
                     
             attacker.net.zero_grad()
             defender.net.zero_grad()

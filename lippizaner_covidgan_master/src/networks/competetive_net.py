@@ -7,6 +7,8 @@ import numpy as np
 import torch
 from torch.nn import Softmax, BCELoss
 
+from sklearn.metrics import confusion_matrix, accuracy_score, balanced_accuracy_score, recall_score, precision_score, f1_score
+
 from distribution.state_encoder import StateEncoder
 from helpers.pytorch_helpers import to_pytorch_variable, is_cuda_enabled, size_splits, noise
 from helpers.configuration_container import ConfigurationContainer
@@ -162,6 +164,8 @@ class DiscriminatorNet(CompetetiveNet):
         outputs = self.net(input).view(-1)
         d_loss_real = self.loss_function(outputs, real_labels)
 
+        real_rounded = torch.round(outputs)
+
         # Compute loss using fake images
         # First term of the loss is always zero since fake_labels == 0
         z = noise(batch_size, self.data_size)
@@ -169,7 +173,14 @@ class DiscriminatorNet(CompetetiveNet):
         outputs = self.net(fake_images).view(-1)
         d_loss_fake = self.loss_function(outputs, fake_labels)
 
-        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake]
+        fake_rounded = torch.round(outputs)
+
+        y_true = [*real_labels.detach().numpy(),*fake_labels.detach().numpy()]
+        y_pred = [*real_rounded.detach().numpy(), *fake_rounded.detach().numpy()]
+        
+        conf_matrix = confusion_matrix(y_true,y_pred)
+
+        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], conf_matrix
 
 
 class GeneratorNetCovid(CompetetiveNet):
@@ -258,7 +269,11 @@ class DiscriminatorNetCovid(CompetetiveNet):
         real_labels = to_pytorch_variable(torch.ones(batch_size))
         fake_labels = to_pytorch_variable(torch.zeros(batch_size))
         
-        outputs = self.net(input).view(-1)
+        outputs = self.net(input).view(-1) #this is a 1d vector
+
+        real_rounded = torch.round(outputs)
+        #print(outputs)
+        #print(rounded)
         
         d_loss_real = self.loss_function(outputs, real_labels)
         
@@ -269,9 +284,18 @@ class DiscriminatorNetCovid(CompetetiveNet):
         outputs = self.net(fake_images).view(-1)
         d_loss_fake = self.loss_function(outputs, fake_labels)
         
+        fake_rounded = torch.round(outputs)
+        y_true = [*real_labels.detach().numpy(),*fake_labels.detach().numpy()]
+        y_pred = [*real_rounded.detach().numpy(), *fake_rounded.detach().numpy()]
         #print("loss function on cuda: ", self.loss_function.is_cuda)
+        conf_matrix = confusion_matrix(y_true,y_pred)
+        #acc=accuracy_score(y_true,y_pred)
+        #bal_acc=balanced_accuracy_score(y_true,y_pred)
+        #recall=recall_score(y_true,y_pred)
+        #precision=precision_score(y_true,y_pred)
+        #f1=f1_score(y_true,y_pred)
 
-        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], None
+        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], conf_matrix
 
 
 class GeneratorNetSequential(CompetetiveNet):
