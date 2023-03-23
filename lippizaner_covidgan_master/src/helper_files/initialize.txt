@@ -5,11 +5,7 @@ nice -n 19 python main.py train --distributed --client & sleep 5;
 
 Done:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_orig/covidqu_0.8.yml;
-
-Running
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_orig/covidqu_0.6.yml;
-
-Ready to run:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_orig/covidqu_0.4.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_orig/covidqu_0.2.yml;
 
@@ -26,8 +22,11 @@ nice -n 19 python main.py train --distributed --master -f configuration/covid-qu
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.8.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.6.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.4.yml;
+
+Running:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.2.yml;
 
+Ready to run:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.8.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.6.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.4.yml;
@@ -35,14 +34,6 @@ nice -n 19 python main.py train --distributed --master -f configuration/covid-qu
 
 
 #TODO
-Log the current iteration number for the GAN (?)
-Log the name of the folder pipa(?)
-study lipizzaner files 
-(in the case of a new run, will it reinitialize the network or will it keep the current trained one) pipa
-
-install tmux  pipa
-(maybe run multiple GAN training simulatniously) 
-
 Create visual comparison for the None mode benchmarks 
 (Compare the accuracy of the 3 base model, averaged through the splits, choose the highest performer)
 Take the average of the splits
@@ -51,3 +42,4 @@ Write into the shared document to log the advancements
 
 Watch Allianz tutorial video/guide
 
+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
