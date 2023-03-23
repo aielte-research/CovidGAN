@@ -12,7 +12,7 @@ import logging
 import neptune
 import neptune.integrations.sklearn as npt_utils
 from neptune.types import File
-from sklearn.metrics  import ConfusionMatrixDisplay
+from sklearn.metrics  import ConfusionMatrixDisplay, confusion_matrix, accuracy_score, balanced_accuracy_score, recall_score, precision_score, f1_score
 
 from distribution.concurrent_populations import ConcurrentPopulations
 from distribution.neighbourhood import Neighbourhood
@@ -134,6 +134,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
           self.neptune_id = f.read()
         run = neptune.init_run(custom_run_id=self.neptune_id)
         run['algorithm'] = "LipizzanerGan"
+        case = self.cc.settings['dataloader'].get('subset_file', False)
+        if case!= False:
+          run['test_case'] = case.split('/')[1].strip('_gan.pkl') + '_ratio'
         run["model/parameters"] = self.cc.settings
         run[f'{self.id}/output_dir'] = self.cc.output_dir
 
@@ -210,7 +213,8 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
             data_iterator = iter(loaded)
             self.batch_histories = {}  #this resets every iteration/epoch 
             self.batch_histories = defaultdict(list) 
-            self.conf_matrix = []
+            #self.conf_matrix = []
+            self.y_list = defaultdict(list)
             #print("\nBefore learning new pop")
             #for individual in new_populations[TYPE_GENERATOR].individuals:
             #    print("Individual name: ", individual.name)
@@ -275,15 +279,21 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 
                 self.neighbourhood.gen_history[iteration] = curr_gen_loss
                 self.neighbourhood.disc_history[iteration] = curr_disc_loss
-                run[f'{self.id}/train/epoch/gen_loss'].append(curr_gen_loss)
-                run[f'{self.id}/train/epoch/disc_loss'].append(curr_disc_loss)
+                run[f'{self.id}/train/gen_loss'].append(curr_gen_loss)
+                run[f'{self.id}/train/disc_loss'].append(curr_disc_loss)
+                
                 if iteration%50==0:
-                    curr_conf_matrix = np.sum(self.conf_matrix,0)
+                    curr_conf_matrix = confusion_matrix(self.y_list['y_true'],self.y_list['y_pred']) 
                     curr_conf_matrix = curr_conf_matrix / np.sum(curr_conf_matrix)
-                    print("Current conf matrix: ",curr_conf_matrix)
                     im = ConfusionMatrixDisplay(curr_conf_matrix, display_labels=["fake", "real"]).plot()
-                    run[f'{self.id}/train/epoch/conf_matrix'].append(im.figure_, description=f"Confusion matrix in the iteration: {iteration}") #File.as_image(curr_conf_matrix))
-                  
+                    run[f'{self.id}/train/metrics/conf_matrix'].append(im.figure_, description=f"Confusion matrix in the iteration: {iteration}") #File.as_image(curr_conf_matrix))
+                run[f'{self.id}/train/metrics/acc'].append( accuracy_score(self.y_list['y_true'],self.y_list['y_pred']))
+                run[f'{self.id}/train/metrics/bal_acc'].append(balanced_accuracy_score(self.y_list['y_true'],self.y_list['y_pred']))
+                run[f'{self.id}/train/metrics/recall'].append(recall_score(self.y_list['y_true'],self.y_list['y_pred']))
+                run[f'{self.id}/train/metrics/precision'].append( precision_score(self.y_list['y_true'],self.y_list['y_pred']))
+                run[f'{self.id}/train/metrics/f1'].append( f1_score(self.y_list['y_true'],self.y_list['y_pred']))
+                
+                    
            # if iteration%5==0:
            #     if self.log_history:
            #       print("="*20)
@@ -352,7 +362,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 self.mutate_mixture_weights_with_score(input_data)  # self.score is updated here
                 if self.log_history:
                      self.neighbourhood.fid_history[iteration] = self.score
-                     run[f'{self.id}/train/epoch/fid_score'].append(self.score)
+                     run[f'{self.id}/train/metrics/fid_score'].append(self.score)
 
             stop_time = time()
             
@@ -395,7 +405,7 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
         
         root_logger = logging.getLogger('root')
         basefile = root_logger.handlers[0].baseFilename
-        run[f'{self.id}/train/epoch/client_log_file'].upload(basefile)
+        run[f'{self.id}/train/client_log_file'].upload(basefile)
         run.stop()
         torch.cuda.empty_cache()
         return self.result()
@@ -521,8 +531,12 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 if defender.name in ('Generator', 'GeneratorSequential'):
                     disc_against_gen_losses = result[1][1]
                     self.batch_histories[individual_defender].append(disc_against_gen_losses)
-                    conf_matrix = result[2]
-                    self.conf_matrix.append(conf_matrix)
+                    y_list = result[2]
+                    self.y_list['y_true'].extend(y_list[0])
+                    self.y_list['y_pred'].extend(y_list[1])
+                    #for key, value in metrics.items():
+                    #  self.metrics[key].append(value)
+                    
                     
             attacker.net.zero_grad()
             defender.net.zero_grad()
