@@ -1,9 +1,12 @@
 import os
 import subprocess
 import pickle
+<<<<<<< HEAD
 import torch
 
 torch.set_num_threads(8)
+=======
+>>>>>>> db0dd64dda369d1b29d084d9f7e2dd45aeb4a6d3
 
 gan_directories = {
     'Test_orig_0.8' : {'dir':'2023-03-14_19-00-08','best':'127.0.0.1-5002'},
@@ -19,7 +22,11 @@ gan_directories = {
     'Test_1_0.8' : {'dir':'2023-03-21_16-13-32','best':'127.0.0.1-5003'},
     'Test_1_0.6' : {'dir':'2023-03-22_09-56-24','best':'127.0.0.1-5001'},
     'Test_1_0.4' : {'dir':'2023-03-22_18-38-27','best':'127.0.0.1-5000'},
+<<<<<<< HEAD
     'Test_1_0.2' : {'dir':'2023-03-23_08-16-51','best':'127.0.0.1-5002'},
+=======
+    'Test_1_0.2' : {'dir':'2023-03-23_08-16-51','best':'127.0.0.1:5002'},
+>>>>>>> db0dd64dda369d1b29d084d9f7e2dd45aeb4a6d3
 
     'Test_2_0.8' : {'dir':'2023-03-19_18-20-08','best':'127.0.0.1-5001'},
     'Test_2_0.6' : {'dir':'2023-03-20_08-46-21','best':'127.0.0.1-5001'},
@@ -37,6 +44,7 @@ idx_to_class ={
         2: 'normal'
     }
 
+<<<<<<< HEAD
 def get_needed_size(split, ratio):
     all_img_file = f'Lung_Segmentation_Data/Indicies_files/Test_{split}/{split}_split_train_and_val.pkl'
     imgs = load_images_from_file(all_img_file)
@@ -52,6 +60,14 @@ def get_needed_size(split, ratio):
     #print("Number of cov imgs: ", len(cov_imgs))
     missing = (len(non_cov_imgs))//2 - len(cov_imgs) +1
     #print("Missing: ", missing)
+=======
+def get_needed_size(file):
+    imgs = load_images_from_file(file)
+    cov_num = 0
+    for x in imgs:
+        if idx_to_class[x[1]] == "covid": cov_num +=1
+    missing = (len(imgs) - cov_num)//2 - cov_num + 1
+>>>>>>> db0dd64dda369d1b29d084d9f7e2dd45aeb4a6d3
     missing = max(0, missing)
     return missing
 
@@ -69,7 +85,11 @@ def generate_images_to_dir(split, data_ratio, directory, size):
     
     curr_dir = os.getcwd()
     
+<<<<<<< HEAD
     lippi_dir = '/home/bbernard/Covid_GAN-main/CovidGAN/lippizaner_covidgan_master/src/'  #Change this on server
+=======
+    lippi_dir = '/home/bbernard/lipizzaner-covidgan-master/src/'  #Change this on server
+>>>>>>> db0dd64dda369d1b29d084d9f7e2dd45aeb4a6d3
     
     output_dir = os.path.join(curr_dir, directory) #?
    
@@ -87,6 +107,7 @@ def generate_images_to_dir(split, data_ratio, directory, size):
     os.chdir(curr_dir)
 
 if __name__=='__main__':
+<<<<<<< HEAD
     split = '1'
     ratio = 0.2
     output_dir = f'Lung_Segmentation_Data/generated/Test_{split}/gan_{ratio}'
@@ -102,3 +123,15 @@ if __name__=='__main__':
     #        size = get_needed_size(split, ratio)
     #        generate_images_to_dir(split, ratio, output_dir, size)
     #        print(f"Generated {size} for {split}_{ratio}")
+=======
+    splits = ["orig", '0', '1', '2', '3']
+    ratios = [0.8, 0.6, 0.4, 0.2]
+    for split in splits:
+        for ratio in ratios:
+            sr = f'Test_{split}_{ratio}'
+            indice_file = f'CovidData/Lung_Segmentation_Data/Indicies_files/Test_{split}/{split}_split_{ratio}_gan.pkl'
+            output_dir = f'CovidData/Lung_Segmentation_Data/generated/Test_{split}/gan_{ratio}'
+            size = get_needed_size(indice_file)
+            generate_images_to_dir(split, ratio, output_dir, size)
+            print("Generated for {split}_{ratio}")
+>>>>>>> db0dd64dda369d1b29d084d9f7e2dd45aeb4a6d3
