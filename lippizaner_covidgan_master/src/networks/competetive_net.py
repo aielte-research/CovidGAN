@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.nn import Softmax, BCELoss
 
-from sklearn.metrics import confusion_matrix, accuracy_score, balanced_accuracy_score, recall_score, precision_score, f1_score
+#from sklearn.metrics import confusion_matrix, accuracy_score, balanced_accuracy_score, recall_score, precision_score, f1_score
 
 from distribution.state_encoder import StateEncoder
 from helpers.pytorch_helpers import to_pytorch_variable, is_cuda_enabled, size_splits, noise
@@ -178,9 +178,15 @@ class DiscriminatorNet(CompetetiveNet):
         y_true = [*real_labels.detach().numpy(),*fake_labels.detach().numpy()]
         y_pred = [*real_rounded.detach().numpy(), *fake_rounded.detach().numpy()]
         
-        conf_matrix = confusion_matrix(y_true,y_pred)
+        #metrics = {}
+        #metrics['conf_matrix'] = confusion_matrix(y_true,y_pred)
+        #metrics['acc'] = accuracy_score(y_true,y_pred)
+        #metrics['bal_acc'] = balanced_accuracy_score(y_true,y_pred)
+        #metrics['recall'] = recall_score(y_true,y_pred)
+        #metrics['precision'] = precision_score(y_true,y_pred)
+        #metrics['f1'] = f1_score(y_true,y_pred)
 
-        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], conf_matrix
+        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], [y_true, y_pred] #metrics 
 
 
 class GeneratorNetCovid(CompetetiveNet):
@@ -285,17 +291,18 @@ class DiscriminatorNetCovid(CompetetiveNet):
         d_loss_fake = self.loss_function(outputs, fake_labels)
         
         fake_rounded = torch.round(outputs)
-        y_true = [*real_labels.detach().numpy(),*fake_labels.detach().numpy()]
-        y_pred = [*real_rounded.detach().numpy(), *fake_rounded.detach().numpy()]
+        y_true = [*real_labels.detach().cpu().numpy(),*fake_labels.detach().cpu().numpy()]
+        y_pred = [*real_rounded.detach().cpu().numpy(), *fake_rounded.detach().cpu().numpy()]
         #print("loss function on cuda: ", self.loss_function.is_cuda)
-        conf_matrix = confusion_matrix(y_true,y_pred)
-        #acc=accuracy_score(y_true,y_pred)
-        #bal_acc=balanced_accuracy_score(y_true,y_pred)
-        #recall=recall_score(y_true,y_pred)
-        #precision=precision_score(y_true,y_pred)
-        #f1=f1_score(y_true,y_pred)
+        #metrics = {}
+        #metrics['conf_matrix'] = confusion_matrix(y_true,y_pred)
+        #metrics['acc'] = accuracy_score(y_true,y_pred)
+        #metrics['bal_acc'] = balanced_accuracy_score(y_true,y_pred)
+        #metrics['recall'] = recall_score(y_true,y_pred)
+        #metrics['precision'] = precision_score(y_true,y_pred)
+        #metrics['f1'] = f1_score(y_true,y_pred)
 
-        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], conf_matrix
+        return d_loss_real + d_loss_fake, [d_loss_real, d_loss_fake], [y_true, y_pred] #metrics 
 
 
 class GeneratorNetSequential(CompetetiveNet):

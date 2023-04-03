@@ -22,15 +22,15 @@ nice -n 19 python main.py train --distributed --master -f configuration/covid-qu
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.8.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.6.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.4.yml;
-
-Running:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_1/covidqu_0.2.yml;
 
-Ready to run:
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.8.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.6.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.4.yml;
 nice -n 19 python main.py train --distributed --master -f configuration/covid-qu-conv/Test_0/covidqu_0.2.yml;
+
+Running: None
+Ready to run: None
 
 
 #TODO
@@ -39,7 +39,4 @@ Create visual comparison for the None mode benchmarks
 Take the average of the splits
 
 Write into the shared document to log the advancements
-
-Watch Allianz tutorial video/guide
-
 

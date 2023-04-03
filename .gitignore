@@ -139,4 +139,6 @@ lippizaner_covidgan_master/sandbox/toy_problem/experiment_results
 CovidGAN-classifier/CovidData
 CovidGAN-classifier/GAN_results
 CovidGAN-classifier/Results
+CovidGAN-classifier/Histories
+CovidGAN-classifier/Lung_Segmentation_Data
 CovidGAN-classifier/Results.xlsx

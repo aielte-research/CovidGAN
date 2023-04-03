@@ -17,31 +17,47 @@ import neptune
 #from torch.cuda import is_cuda_enabled
 #from torch.nn import RNN
 #from torch.autograd import Variable
-ROOT_DIR = 'CovidData/Lung_Segmentation_Data'
+DATA_ROOT_DIR = 'CovidData/Lung_Segmentation_Data'
 
 DEFAULT_LOSS = torch.nn.BCELoss()
-#DEFAULT_OPTIM = optimizer = torch.optim.Adam(network.parameters(), lr=3e-5)
-#LOSS_FN = torch.nn.CrossEntropyLoss()
+LOSS_FN = torch.nn.CrossEntropyLoss()
+BATCH_SIZE = 128
+
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-now = datetime.now()
-hash_id = hashlib.md5(now.strftime("%Y-%m-%d_%H_%M_%S").encode("utf-8")).hexdigest() 
-NEPTUNE_ID = hash_id
+#now = datetime.now()
+#hash_id = hashlib.md5(now.strftime("%Y-%m-%d_%H_%M_%S").encode("utf-8")).hexdigest() 
+#NEPTUNE_ID = hash_id
 
 #torch.set_num_threads(8)
 
-#    def compute_loss_against(self, input):
-#        batch_size = input.size(0)
-#        input = input.view(-1, 1, self.image_length, self.image_width)
-#        real_labels = torch.ones(batch_size)
-#        outputs = self.net(input).view(-1) 
-#        real_rounded = torch.round(outputs)
-#        d_loss_real = self.loss_function(outputs, real_labels)
-#        y_true = real_labels.detach().cpu().numpy()
-#        y_pred = real_rounded.detach().cpu().numpy()
+gan_directories = {
+    'Test_orig_0.8' : {'dir':'2022-12-14_12-57-44','best':'127.0.0.1-5002'},
+    'Test_orig_0.6' : {'dir':'2022-12-14_15-04-49','best':'127.0.0.1-5001'},
+    'Test_orig_0.4' : {'dir':'2022-12-14_16-48-34','best':'127.0.0.1-5002'},
+    'Test_orig_0.2' : {'dir': '2022-12-14_18-54-13','best':'127.0.0.1-5002'},
+    
+    'Test_0_0.8' : {'dir': '2022-12-15_09-10-08','best':''},
+    'Test_0_0.6' : {'dir':'2022-12-15_10-41-13','best':''},
+    'Test_0_0.4' : {'dir':'2022-12-15_11-34-52','best':''},
+    'Test_0_0.2' : {'dir':'2022-12-15_12-31-45','best':''},
 
-#        return d_loss_real , [y_true, y_pred] #metrics 
+    'Test_1_0.8' : {'dir':'2022-12-15_12-57-15','best':'127.0.0.1-5003'},
+    'Test_1_0.6' : {'dir':'2022-12-15_14-07-49','best':'127.0.0.1-5001'},
+    'Test_1_0.4' : {'dir':'2022-12-15_15-01-39','best':'127.0.0.1-5000'},
+    'Test_1_0.2' : {'dir':'2022-12-15_15-41-37','best':'127.0.0.1:5002'},
 
-def create_discriminator():
+    'Test_2_0.8' : {'dir':'2022-12-15_16-08-24','best':'127.0.0.1-5001'},
+    'Test_2_0.6' : {'dir':'2022-12-15_17-22-46','best':'127.0.0.1-5001'},
+    'Test_2_0.4' : {'dir':'2022-12-15_18-18-53','best':'127.0.0.1-5001'},
+    'Test_2_0.2' : {'dir':'2022-12-15_19-04-53','best':'127.0.0.1-5002'},
+
+    'Test_3_0.8' : {'dir': '2022-12-15_19-31-00','best':'127.0.0.1-5001'},
+    'Test_3_0.6' : {'dir':'2022-12-15_20-43-34','best':'127.0.0.1-5003'},
+    'Test_3_0.4' : {'dir':'2022-12-15_21-39-35','best':'127.0.0.1-5002'},
+    'Test_3_0.2' : {'dir':'2022-12-15_22-21-06','best':'127.0.0.1-5000'},
+     }
+
+def create_discriminator(split, data_ratio):
     complexity = 64
     net = Sequential(
                 nn.Conv2d(1, complexity, 4, 2, 3),
@@ -58,6 +74,11 @@ def create_discriminator():
                 nn.Conv2d(complexity * 4, 1, 8, 1, 0),
                 nn.Sigmoid()
             )
+    lippi_dir = '/home/bbernard/lipizzaner-covidgan-master/src/'
+    gan_dir = gan_directories[f'Test_{split}_{data_ratio}']['dir'] 
+    best_gen = gan_directories[f'Test_{split}_{data_ratio}']['best'] 
+    src_file = os.path.join(lippi_dir, f'output/lipizzaner_gan/master/{gan_dir}/{best_gen}/discriminator-{best_gen}.pkl')
+    net.load_state_dict(torch.load(src_file))
     return net
 
 class CustomDataset(torchvision.datasets.ImageFolder):
@@ -66,7 +87,7 @@ class CustomDataset(torchvision.datasets.ImageFolder):
     """
     #Imagefolder for efficiency
     def __init__(self, images, transform):
-        target_dir = os.path.join(ROOT_DIR, 'original')
+        target_dir = os.path.join(DATA_ROOT_DIR, 'original')
         super().__init__(target_dir, transform)
         self.samples = images
         self.imgs = images
@@ -98,39 +119,33 @@ def DatasetMaker(split, data_ratio=1, transform = None, geoaugment=False):
 
     #Determining the root directories for original images 
     orig_dirs = {
-    'normal' : f'{ROOT_DIR}/original/Normal',
-    'viral' : f'{ROOT_DIR}/original/Non-Covid',
-    'covid' : f'{ROOT_DIR}/original/COVID-19'
-    }
-    #Determining the root directories for generated images 
-    fake_dirs = {
-        'gan_0.8' : f'{ROOT_DIR}/generated/Test_{split}/gan_0.8',
-        'gan_0.6' : f'{ROOT_DIR}/generated/Test_{split}/gan_0.6',
-        'gan_0.4' : f'{ROOT_DIR}/generated/Test_{split}/gan_0.4',
-        'gan_0.2' : f'{ROOT_DIR}/generated/Test_{split}/gan_0.2'
+    'normal' : f'{DATA_ROOT_DIR}/original/Normal',
+    'viral' : f'{DATA_ROOT_DIR}/original/Non-Covid',
+    'covid' : f'{DATA_ROOT_DIR}/original/COVID-19'
     }
     #Determining the root directories for files which contain the names of the COVID19 pictures 
     indicies_files = {
-        'gan_0.8' : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.8_gan.pkl', 
-        'gan_0.6' : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.6_gan.pkl',
-        'gan_0.4' : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.4_gan.pkl',
-        'gan_0.2' : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.2_gan.pkl',
-        'test'  : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_test.pkl',
-        'train'  : f'{ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_train_and_val.pkl'
+        'gan_0.8' : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.8_gan.pkl', 
+        'gan_0.6' : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.6_gan.pkl',
+        'gan_0.4' : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.4_gan.pkl',
+        'gan_0.2' : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_0.2_gan.pkl',
+        'test'  : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_test.pkl',
+        'train'  : f'{DATA_ROOT_DIR}/Indicies_files/Test_{split}/{split}_split_train_and_val.pkl'
     }
     class_idx = {
-        'covid': 0, 
-        'viral': 1,
-        'normal': 2,
-        'gan_0.8' : 0,
-        'gan_0.6' : 0,
-        'gan_0.4' : 0,
-        'gan_0.2' : 0
+        'covid': 1, 
+        'viral': 0,
+        'normal': 0,
+        'gan_0.8' : 1,
+        'gan_0.6' : 1,
+        'gan_0.4' : 1,
+        'gan_0.2' : 1,
+        'non-covid' : 0
     }
     idx_to_class ={
-        0: 'covid',
-        1: 'viral',
-        2: 'normal'
+        0:'non-covid', #'covid',
+        1:'covid',#'viral',
+        2:'non-covid' #'normal'
     }
 
     #The dictionary that will contain the route for the several image classes
@@ -189,14 +204,14 @@ def DatasetMaker(split, data_ratio=1, transform = None, geoaugment=False):
     #val_dataset = CustomDataSet(val_images, transforms)
     test_dataset = CustomDataset(test_images,  transforms)
     all_dataset = CustomDataset([*train_images, *test_images],  transforms)
-    return train_dataset, test_dataset #val_dataset
+    return train_dataset, test_dataset, all_dataset
 
 def load_images_from_file(file):
     with open(file, 'rb') as file:
         data = pickle.load(file)
     return data   
 
-def test(net, loss_fn, test_dataset, batch_size, shuffle, neptune_run):
+def test(net, loss_fn, test_dataset, batch_size, shuffle):
     test_dl =  torch.utils.data.DataLoader(test_dataset, batch_size = batch_size, num_workers=0, shuffle= shuffle)
     val_loss = 0.
     val_accuracy = 0.
@@ -225,8 +240,8 @@ def test(net, loss_fn, test_dataset, batch_size, shuffle, neptune_run):
     val_loss /= len(test_dl)
     val_accuracy = val_accuracy/len(test_dataset)
 
-    run = neptune.init_run(custom_run_id=NEPTUNE_ID)
-    run['algorithm'] = "LipizzanerGan"
+    run = neptune.init_run()
+    run['algorithm'] = "GAN_eval"
 
     curr_conf_matrix = confusion_matrix(y_true, y_pred) 
     curr_conf_matrix = curr_conf_matrix / np.sum(curr_conf_matrix)
@@ -240,3 +255,13 @@ def test(net, loss_fn, test_dataset, batch_size, shuffle, neptune_run):
 
     run.stop()
     #print(f'Validation Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.4f}')
+
+if __name__=='__main__':
+    splits = ['orig', '0', '1', '2', '3']
+    ratios = [0.8, 0.6, 0.4, 0.2]
+    for split in splits:
+        for data_ratio in ratios:
+            net = create_discriminator(split, data_ratio)
+            _,_,test_dataset = DatasetMaker(split, data_ratio)
+            test(net, DEFAULT_LOSS,test_dataset,BATCH_SIZE,True )
+            print(f"Finished {split} {data_ratio} run")
