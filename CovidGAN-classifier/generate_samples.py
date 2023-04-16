@@ -67,7 +67,7 @@ def generate_images_to_dir(split, data_ratio, directory, size):
     
     curr_dir = os.getcwd()
     
-    lippi_dir = '/home/bbernard/Covid_GAN-main/CovidGAN/lippizaner_covidgan_master/src/'  #Change
+    lippi_dir = '/home/bbernard/CovidGan-elte/CovidGAN/lippizaner_covidgan_master/src/'  #Change
     
     output_dir = os.path.join(curr_dir, directory) #?
    

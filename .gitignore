@@ -142,3 +142,6 @@ CovidGAN-classifier/Results
 CovidGAN-classifier/Histories
 CovidGAN-classifier/Lung_Segmentation_Data
 CovidGAN-classifier/Results.xlsx
+CovidGAN-classifier/.neptune
+CovidGAN-classifier/cuda.py
+CovidGAN-classifier/neptunelippi.yml
