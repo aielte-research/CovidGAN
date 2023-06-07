@@ -243,10 +243,9 @@ class LipizzanerGANTrainer(EvolutionaryAlgorithmTrainer):
                 defenders = new_populations[TYPE_DISCRIMINATOR] if self._enable_selection else all_discriminators
                 
                 
-                #print("Input data is on cuda: ", input_data.is_cuda)
                 input_data = self.step(local_generators, attackers, defenders, input_data, self.batch_number, loaded,
                                        data_iterator, iteration)
-                #print("Input data is on cuda after step: ", input_data.is_cuda)
+                
                 #Complete an optimizing step with the discriminators when needed
                 if self._discriminator_skip_each_nth_step == 0 or self.batch_number % (
                         self._discriminator_skip_each_nth_step + 1) == 0:

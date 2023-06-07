@@ -145,3 +145,4 @@ CovidGAN-classifier/Results.xlsx
 CovidGAN-classifier/.neptune
 CovidGAN-classifier/cuda.py
 CovidGAN-classifier/neptunelippi.yml
+Covid_data.csv
