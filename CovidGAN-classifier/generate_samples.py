@@ -26,11 +26,43 @@ gan_directories = {
     'Test_2_0.6' : {'dir':'2023-03-20_08-46-21','best':'127.0.0.1-5001'},
     'Test_2_0.4' : {'dir':'2023-03-20_16-58-27','best':'127.0.0.1-5001'},
     'Test_2_0.2' : {'dir':'2023-03-21_08-49-59','best':'127.0.0.1-5002'},
+    
+    'Test_2_nested_0.8' : {'dir':'2023-05-12_14-44-24','best':'127.0.0.1-5000'},
+    'Test_2_nested_0.6' : {'dir':'2023-05-12_23-39-25','best':'127.0.0.1-5001'},
+    'Test_2_nested_0.4' : {'dir':'2023-05-13_08-49-50','best':'127.0.0.1-5001'},
+    'Test_2_nested_0.2' : {'dir':'2023-05-13_16-32-04','best':'127.0.0.1-5003'},
+    
 
     'Test_3_0.8' : {'dir':'2023-03-17_17-42-29','best':'127.0.0.1-5001'},
     'Test_3_0.6' : {'dir':'2023-03-18_07-56-44','best':'127.0.0.1-5003'},
     'Test_3_0.4' : {'dir':'2023-03-18_23-01-23','best':'127.0.0.1-5002'},
     'Test_3_0.2' : {'dir':'2023-03-19_07-43-42','best':'127.0.0.1-5000'},
+    
+    
+    'Test_3_nested_0.8' : {'dir':'2023-05-17_15-05-40','best':'127.0.0.1-5003'},
+    'Test_3_nested_0.6' : {'dir':'2023-05-18_07-04-06','best':'127.0.0.1-5003'},
+    'Test_3_nested_0.4' : {'dir':'2023-05-18_16-51-47','best':'127.0.0.1-5000'},
+    'Test_3_nested_0.2' : {'dir':'2023-05-19_00-43-27','best':'127.0.0.1-5002'},
+    
+    'Test_4_nested_0.8' : {'dir':'2023-05-19_18-13-20','best':'127.0.0.1-5003'},
+    'Test_4_nested_0.6' : {'dir':'2023-05-20_04-06-53','best':'127.0.0.1-5002'},
+    'Test_4_nested_0.4' : {'dir':'2023-05-20_12-10-40','best':'127.0.0.1-5003'},
+    'Test_4_nested_0.2' : {'dir':'2023-05-20_19-10-35','best':'127.0.0.1-5002'},
+    
+    'Test_5_nested_0.8' : {'dir':'2023-05-19_18-18-57','best':'127.0.0.1-5007'},
+    'Test_5_nested_0.6' : {'dir':'2023-05-20_04-12-04','best':'127.0.0.1-5005'},
+    'Test_5_nested_0.4' : {'dir':'2023-05-20_12-16-28','best':'127.0.0.1-5004'},
+    'Test_5_nested_0.2' : {'dir':'2023-05-20_19-15-49','best':'127.0.0.1-5007'},
+    
+    'Test_6_nested_0.8' : {'dir':'2023-05-25_13-41-14','best':'127.0.0.1-5001'},
+    'Test_6_nested_0.6' : {'dir':'2023-05-25_23-15-49','best':'127.0.0.1-5003'},
+    'Test_6_nested_0.4' : {'dir':'2023-05-26_07-48-31','best':'127.0.0.1-5002'},
+    'Test_6_nested_0.2' : {'dir':'2023-05-26_16-04-33','best':'127.0.0.1-5002'},
+    
+    'Test_7_nested_0.8' : {'dir':'2023-05-25_13-44-11','best':'127.0.0.1-5007'},
+    'Test_7_nested_0.6' : {'dir':'2023-05-25_23-21-08','best':'127.0.0.1-5006'},
+    'Test_7_nested_0.4' : {'dir':'2023-05-26_07-51-44','best':'127.0.0.1-5004'},
+    'Test_7_nested_0.2' : {'dir':'2023-05-26_16-10-43','best':'127.0.0.1-5005'},
      }
 idx_to_class ={
         0: 'covid',
@@ -67,7 +99,7 @@ def generate_images_to_dir(split, data_ratio, directory, size):
     
     curr_dir = os.getcwd()
     
-    lippi_dir = '/home/bbernard/CovidGan-elte/CovidGAN/lippizaner_covidgan_master/src/'  #Change
+    lippi_dir = '/home/bbernard/Covid_GAN-main/CovidGAN/lippizaner_covidgan_master/src/'  #Change
     
     output_dir = os.path.join(curr_dir, directory) #?
    
@@ -85,8 +117,8 @@ def generate_images_to_dir(split, data_ratio, directory, size):
     os.chdir(curr_dir)
 
 if __name__=='__main__':
-    splits = ["orig", '0', '1', '2', '3']
-    ratios = [0.8, 0.6, 0.4, 0.2]
+    splits = ['6_nested','7_nested']
+    ratios = [0.2]
     for split in splits:
         for ratio in ratios:
             output_dir = f'Lung_Segmentation_Data/generated/Test_{split}/gan_{ratio}'
