@@ -65,7 +65,7 @@ class CovidQuPositiveDataSet(ImageFolder):
                               
         self.cc = ConfigurationContainer.instance()
         settings = self.cc.settings['dataloader']
-        subset_file = settings.get('subset_file',None)
+        subset_file = settings.get('subset_file',None)   #gets the subset file 
         
         target_dir=os.path.join(root, self.base_folder)
         self.image_dirs = {}
@@ -77,7 +77,6 @@ class CovidQuPositiveDataSet(ImageFolder):
         #######
         #TODO rewrite this
         #######
-        
         if subset_file is not None:
           path = os.path.join(root, 'COVID_QU/Indice_files', subset_file)
           with open(path, 'rb') as file:
